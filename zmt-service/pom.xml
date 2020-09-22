@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <parent>
+        <artifactId>fhh-zmt-new</artifactId>
+        <groupId>com.ifeng.fhh.zmt.new</groupId>
+        <version>1.0-SNAPSHOT</version>
+    </parent>
+    <modelVersion>4.0.0</modelVersion>
+
+    <artifactId>zmt-service</artifactId>
+    <version>1.0-SNAPSHOT</version>
+    <packaging>jar</packaging>
+    <name>zmt-service</name>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.ifeng.fhh.zmt.new</groupId>
+            <artifactId>zmt-web</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.ifeng.fhh.zmt.new</groupId>
+            <artifactId>zmt-tools</artifactId>
+        </dependency>
+        <!-- -->
+        <dependency>
+            <groupId>org.mongodb</groupId>
+            <artifactId>mongodb-driver-async</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.elasticsearch.client</groupId>
+            <artifactId>transport</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>commons-beanutils</groupId>
+            <artifactId>commons-beanutils</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-to-slf4j</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpasyncclient</artifactId>
+        </dependency>
+
+    </dependencies>
+
+    <profiles>
+        <profile>
+            <id>zmt-service:test</id>
+            <properties>
+                <mongodb_driver_shard>mongodb://fhh_test_rw_shard:fhh_test_rw_shard@10.21.7.81:10000/?authSource=fhh_test</mongodb_driver_shard>
+                <mongodb_driver_read_shard>mongodb://fhh_test_rw_shard:fhh_test_rw_shard@10.21.7.81:10000/?authSource=fhh_test&amp;readpreference=secondaryPreferred</mongodb_driver_read_shard>
+                <db>fhh_test</db>
+                <elasticsearch_cluster_host>10.90.85.162:9300,10.90.86.162:9300,10.90.87.162:9300,10.90.88.162:9300,10.90.89.162:9300</elasticsearch_cluster_host>
+                <searchEngine_elasticsearch_account_index>account_test</searchEngine_elasticsearch_account_index>
+                <searchEngine_elasticsearch_account_index_v2>account_v2_test</searchEngine_elasticsearch_account_index_v2>
+                <authorization.url>https://test0.auth-server.cpdt.ifengidc.com/userRole</authorization.url>
+            </properties>
+        </profile>
+
+        <profile>
+            <id>zmt-service:product</id>
+            <properties>
+                <mongodb_driver_shard>mongodb://ifeng:TPGgvdNDEF8greCG@10.66.16.161:27017/fhh?authSource=admin&amp;maxpoolsize=200&amp;readpreference=primary</mongodb_driver_shard>
+                <mongodb_driver_read_shard>mongodb://ifeng:TPGgvdNDEF8greCG@10.66.16.161:27017/fhh?authSource=admin&amp;maxpoolsize=200&amp;readpreference=secondaryPreferred</mongodb_driver_read_shard>
+                <db>fhh</db>
+                <elasticsearch_cluster_host>10.66.17.89:26598,10.66.17.14:26687,10.66.17.95:27776</elasticsearch_cluster_host>
+                <searchEngine_elasticsearch_account_index>account</searchEngine_elasticsearch_account_index>
+                <searchEngine_elasticsearch_account_index_v2>account_v2</searchEngine_elasticsearch_account_index_v2>
+                <authorization.url>https://auth-server.cpdt.ifengidc.com/userRole</authorization.url>
+            </properties>
+        </profile>
+    </profiles>
+
+    <build>
+        <resources>
+            <resource>
+                <directory>${project.basedir}/src/main/resources</directory>
+                <filtering>true</filtering>
+            </resource>
+        </resources>
+        <plugins>
+            <!-- spring boot plugin-->
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>repackage</goal>
+                        </goals>
+                        <configuration>
+                            <finalName>
+                                ${project.artifactId}-${project.version}-fat
+                            </finalName>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+        </plugins>
+        <finalName>zmt-service</finalName>
+    </build>
+</project>

@@ -1,0 +1,65 @@
+FROM docker.ifeng.com/library/maven:3.5.0-jdk-8-alpine AS build
+
+RUN echo $' \n\
+<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 \n\
+                      https://maven.apache.org/xsd/settings-1.0.0.xsd"> \n\
+    <localRepository>/data/ifeng/cache/mvn</localRepository> \n\
+    <profiles> \n\
+        <profile> \n\
+            <id>nexus</id> \n\
+            <repositories> \n\
+                <repository> \n\
+                    <id>central</id> \n\
+                    <name>Nexus</name> \n\
+                    <url>http://maven.haihang.ifengidc.com:8081/nexus/content/groups/public/</url> \n\
+                    <releases><enabled>true</enabled></releases> \n\
+                    <snapshots><enabled>true</enabled></snapshots> \n\
+                </repository> \n\
+            </repositories> \n\
+            <pluginRepositories> \n\
+                <pluginRepository> \n\
+                    <id>central</id> \n\
+                    <name>Nexus</name> \n\
+                    <url>http://maven.haihang.ifengidc.com:8081/nexus/content/groups/public/</url> \n\
+                    <releases><enabled>true</enabled></releases> \n\
+                    <snapshots><enabled>true</enabled></snapshots> \n\
+                </pluginRepository> \n\
+            </pluginRepositories> \n\
+        </profile> \n\
+    </profiles> \n\
+    <activeProfiles> \n\
+        <activeProfile>nexus</activeProfile> \n\
+    </activeProfiles> \n\
+</settings> '> /usr/share/maven/ref/settings-docker.xml
+
+ADD . /tmp/
+
+RUN cd /tmp/ && \
+    mvn clean install -DskipTests -gs /usr/share/maven/ref/settings-docker.xml && \
+    mvn package -pl zmt-service -P zmt-service:test -gs /usr/share/maven/ref/settings-docker.xml
+
+FROM docker.ifeng.com/library/openjdk:8u212-jre-alpine
+
+WORKDIR /ifeng-app
+RUN mkdir -p /data/logs
+COPY --from=build /tmp/zmt-service/target/zmt-service-*-fat.jar /ifeng-app/zmtapi.jar
+########主备腾讯源  主源腾讯内网 备源腾讯公网 安装 supervisor
+RUN echo "http://mirrors.tencentyun.com/alpine/v$(cat /etc/alpine-release | cut -d'.' -f1,2)/main" >/etc/apk/repositories && \
+    echo "http://mirrors.tencentyun.com/alpine/v$(cat /etc/alpine-release | cut -d'.' -f1,2)/community" >>/etc/apk/repositories && \
+    echo "http://mirrors.cloud.tencent.com/alpine/v$(cat /etc/alpine-release | cut -d'.' -f1,2)/main" >>/etc/apk/repositories && \
+    echo "http://mirrors.cloud.tencent.com/alpine/v$(cat /etc/alpine-release | cut -d'.' -f1,2)/community" >>/etc/apk/repositories && \
+    apk add supervisor --no-cache
+#启动配置文件
+RUN echo $' \n\
+[supervisord] \n\
+nodaemon=true \n\
+loglevel=error \n\
+[program:java] \n\
+command=java -server -Xms500M -Xmx500M -XX:+UseG1GC -XX:+PrintGC -XX:+PrintGCDateStamps -Duser.timezone=Asia/Shanghai -Djaeger-server-name=zmt-service -DserverType=api -jar zmtapi.jar --server.port=8080 \n\
+stdout_logfile=/dev/stdout \n\
+stderr_logfile=/dev/stderr \n\
+stdout_logfile_maxbytes = 0 \n\
+stderr_logfile_maxbytes = 0' > /etc/supervisord.conf
+
+EXPOSE 8080
+ENTRYPOINT ["/usr/bin/supervisord", "-c", "/etc/supervisord.conf"]
